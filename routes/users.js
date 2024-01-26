@@ -84,6 +84,9 @@ usersRouter.post('/', (req, res, next)=>{
             writeUsersFile()
             .then((value)=>{
                 console.log("the user has been created, answer: " + value);
+                req.session.account = {email};
+                console.log("the session id now is: " + req.sessionID);
+                console.log("the account in the session is: " + req.session.account)
                 res.send(201)
             })
             .catch((err)=>{
