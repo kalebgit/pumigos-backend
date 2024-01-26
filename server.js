@@ -30,7 +30,7 @@ app.use("/api/users", UsersRoute)
 const PORT = 8080
 
 app.listen(PORT, ()=>{
-    console.log("The server is listening")
+    console.log("The server is listening in port: " + PORT)
 })
 
 
