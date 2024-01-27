@@ -1,24 +1,12 @@
 const {Router} = require("express")
 const fs = require("fs")
 const path = require("path")
-
-//own method
-const {writeInstanceFile, getDataFromFile, getLimitedData, getInstanceById, createInstance, updateInstance, deleteInstances} = require("../util/manager")
-
-//using router
 const usersRouter = Router();
-
-//FOR FUTURE AUTH WITH SESSIONS
-// usersRouter.use((req, res, next)=>{
-
-// })
-
+//own method
+const {getDataFromFile, getLimitedData, getInstanceById, createInstance, updateInstance, deleteInstances} = require("../util/manager")
+//variables
 const FILEPATH = './data/users.json';
-
 let users;
-
-
-
 
 //function to update the array of users that will be returned by the server
 usersRouter.use((req, res, next)=>{
@@ -73,9 +61,10 @@ usersRouter.post('/', (req, res, next)=>{
 })
 
 usersRouter.put('/:id', (req, res, next)=>{
+    const {id} = req.params;
     updateInstance({
         collection: users,
-        id: req.params.id,
+        id: id,
         path: FILEPATH,
         updatedData: req.body,
         notDuplicated: !users.find((user)=>(user.email == userToBeUpdated.email && user.id != id))

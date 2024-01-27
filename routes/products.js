@@ -1,11 +1,8 @@
 //own function
-const {writeInstanceFile, getDataFromFile, getLimitedData, createInstance} = require("../util/manager")
-
+const {getDataFromFile, getLimitedData, getInstanceById, createInstance, updateInstance, deleteInstances} = require("../util/manager")
 const {Router} = require("express");
 
-//creating router
 const productsRouter = Router();
-
 const FILEPATH = './data/products.json'
 //array of products
 let products;
@@ -22,13 +19,11 @@ productsRouter.use((req, res, next)=>{
 });
 
 productsRouter.get("/",(req, res, next)=>{
-    const {limit} = req.query;
-    res.send(getLimitedData(limit, products));
+    res.send(getLimitedData(req.query.limit, products));
 })
 
 productsRouter.get("/:id", (req, res, next)=>{
-    const {id} = req.params;
-    getInstanceById(products, id)
+    getInstanceById(products, req.params.id)
         .then((productFound)=>{
             res.send(productFound);
         })
@@ -38,7 +33,6 @@ productsRouter.get("/:id", (req, res, next)=>{
 })
 
 productsRouter.post("/", (req, res, next)=>{
-    const newProduct = req.body;
     createInstance(
         {
             path: FILEPATH,
@@ -60,11 +54,31 @@ productsRouter.post("/", (req, res, next)=>{
 
 productsRouter.put("/:id", (req, res, next)=>{
     const {id} = req.params;
+    updateInstance({
+        collection: products, 
+        path: FILEPATH,
+        id: id,
+        updatedData: req.body,
+        notDuplicated: false
+    })
 })
 
 productsRouter.delete("/:id", (req, res, next)=>{
-    
+    deleteInstances({
+        collection: products,
+        path: FILEPATH,
+        id: req.params.id,
+        deleteAll: false
+    })
 })
 
+productsRouter.delete("/", (req, res, next)=>{
+    deleteInstances({
+        collection: products,
+        path: FILEPATH,
+        id: false,
+        deleteAll: req.query.deleteAll
+    })
+})
 
 module.exports = productsRouter;
