@@ -28,18 +28,19 @@ productsRouter.get("/:id", (req, res, next)=>{
             res.send(productFound);
         })
         .catch((err)=>{
-            console.log(err)
+            res.send(err)
         })
 })
 
 productsRouter.post("/", (req, res, next)=>{
+    const {title, description, code, price, status, stock, category, thumbnails} = req.body;
     createInstance(
         {
             path: FILEPATH,
             collection: products,
             body: req.body,
             id:  (products.length > 0 ? products[users.length - 1].id : 0) + 1,
-            objectValid: true, 
+            objectValid: title && description && code && price && status && stock && category && thumbnails, 
             notDuplicated: true
         }
     )

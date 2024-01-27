@@ -48,7 +48,8 @@ async function getInstanceById(collection, id){
             resolve(dataFound)
         }
         else{
-            reject("user not found with the id: " + id)
+            console.log("user not found with the id: " + id)
+            reject(404)
         }
     })
 }

@@ -33,7 +33,7 @@ usersRouter.get("/:id", (req, res, next)=>{
             res.send(userFound);
         })
         .catch((err)=>{
-            console.log(err)
+            res.send(err)
         })
 })
 
