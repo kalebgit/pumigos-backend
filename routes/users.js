@@ -3,7 +3,7 @@ const fs = require("fs")
 const path = require("path")
 
 //own method
-const {writeInstanceFile, getDataFromFile, getLimitedData, getInstanceById, createInstance, updateInstance} = require("../util/manager")
+const {writeInstanceFile, getDataFromFile, getLimitedData, getInstanceById, createInstance, updateInstance, deleteInstances} = require("../util/manager")
 
 //using router
 const usersRouter = Router();
@@ -35,14 +35,12 @@ usersRouter.use((req, res, next)=>{
 
 //function for get method of all users or a limit of users
 usersRouter.get('/', (req, res, next)=>{
-    const {limit} = req.query;  
-    res.send(getLimitedData(limit, users))
+    res.send(getLimitedData(req.query.limit, users))
 })
 
 //function to get a user for a specific id
 usersRouter.get("/:id", (req, res, next)=>{
-    const {id} = req.params;
-    getInstanceById(users, id)
+    getInstanceById(users, req.params.id)
         .then((userFound)=>{
             res.send(userFound);
         })
@@ -75,10 +73,9 @@ usersRouter.post('/', (req, res, next)=>{
 })
 
 usersRouter.put('/:id', (req, res, next)=>{
-    const {id} = req.params;
     updateInstance({
         collection: users,
-        id: id,
+        id: req.params.id,
         path: FILEPATH,
         updatedData: req.body,
         notDuplicated: !users.find((user)=>(user.email == userToBeUpdated.email && user.id != id))
@@ -92,41 +89,21 @@ usersRouter.put('/:id', (req, res, next)=>{
 })
 
 usersRouter.delete('/:id', (req, res, next)=>{
-    const {id} = req.params
-    if(users.find((user)=>user.id == id)){
-        users = users.map((user)=>!(user.id == id));
-        writeInstanceFile(FILEPATH, users)
-            .then(()=>{
-                console.log("the element has been deleted")
-                res.send(200);
-            })
-            .catch((err)=>{
-                console.log("error in the file")
-                res.send(500);
-            })
-        
-    }else{
-        console.log("user not found to be deleted")
-        res.send(404)
-    }
+    deleteInstances({
+        collection: users,
+        path: FILEPATH,
+        id: req.params.id,
+        deleteAll: false
+    })
 })
 
 usersRouter.delete('/', (req, res, next)=>{
-    const {deleteAll} = req.query;
-    if(deleteAll){
-        users = [];
-        writeInstanceFile(FILEPATH, users)
-        .then(()=>{
-            console.log("all elements had been deleted")
-            res.send(200);
-        })
-        .catch((err)=>{
-            console.log("error in operation")
-            res.send(500);
-        })
-    }else{
-        res.send(418)
-    }
+    deleteInstances({
+        collection: users,
+        path: FILEPATH,
+        id: NaN,
+        deleteAll: req.query.deleteAll
+    })
 })
 
 module.exports = usersRouter;

@@ -78,7 +78,7 @@ async function createInstance({path, collection, body, id, objectValid, notDupli
     })
 }
 
-async function updateInstance(collection, id, path, updatedData, notDuplicated){
+async function updateInstance({collection, id, path, updatedData, notDuplicated}){
     new Promise((resolve, reject)=>{
         if(updatedData){
             //CHEKCS the email
@@ -117,8 +117,46 @@ async function updateInstance(collection, id, path, updatedData, notDuplicated){
     })
 }
 
-function deleteInstance(){
-    
+async function deleteInstances({collection, path, id, deleteAll}){
+    return new Promise((resolve, reject)=>{
+        if(id && !isNaN(id)){
+            if(collection.find((data)=>data.id == id)){
+                collection = collection.map((data)=>!(data.id == id));
+                writeInstanceFile(path, collection)
+                    .then(()=>{
+                        console.log("the element has been deleted")
+                        resolve();
+                    })
+                    .catch((err)=>{
+                        console.log("error in the file")
+                        reject(500);
+                    })
+                
+            }else{
+                console.log("instance not found to be deleted")
+                reject(404)
+            }
+        }else if(deleteAll){
+            if(deleteAll){
+                collection = [];
+                writeInstanceFile(path, collection)
+                .then(()=>{
+                    console.log("all elements has been deleted")
+                    resolve()
+                })
+                .catch((err)=>{
+                    console.log("error in operation")
+                    reject(500)
+                })
+            }else{
+                reject(418)
+            }
+        }
+        else{
+            console.log("the delete has no input to know what to do")
+            reject(418)
+        }
+    })
 }
 
 module.exports = {
@@ -127,5 +165,6 @@ module.exports = {
     getLimitedData,
     getInstanceById,
     createInstance,
-    updateInstance
+    updateInstance,
+    deleteInstances
 }
