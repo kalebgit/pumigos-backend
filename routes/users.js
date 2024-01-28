@@ -1,45 +1,21 @@
 const {Router} = require("express")
 const fs = require("fs")
 const path = require("path")
-
-//using router
 const usersRouter = Router();
-
-//FOR FUTURE AUTH WITH SESSIONS
-// usersRouter.use((req, res, next)=>{
-
-// })
-
+//own method
+const {getDataFromFile, getLimitedData, getInstanceById, createInstance, updateInstance, deleteInstances} = require("../util/manager")
+//variables
 const FILEPATH = './data/users.json';
-
-let usersArray;
-
-//function to write the whole array in the file
-async function writeUsersFile(){
-    return new Promise((resolve, reject)=>{
-        fs.promises.writeFile(FILEPATH, JSON.stringify(usersArray), {encoding: 'utf-8'})
-            .then((value)=>{
-                resolve(value)
-            })
-            .catch((err)=>{
-                reject(err)
-            })
-    })
-}
+let users;
 
 //function to update the array of users that will be returned by the server
 usersRouter.use((req, res, next)=>{
-    fs.promises.readFile(FILEPATH, {encoding: 'utf-8'})
+    getDataFromFile(FILEPATH)
         .then((data)=>{
-            if(data){
-                usersArray = JSON.parse(data);
-            }else{
-                usersArray = [];
-            }
+            users = data;
             next()
         })
         .catch((err)=>{
-            console.log("error with the users file at the first middleware of route users: " + err);
             res.send(500)
         })
 })
@@ -47,134 +23,76 @@ usersRouter.use((req, res, next)=>{
 
 //function for get method of all users or a limit of users
 usersRouter.get('/', (req, res, next)=>{
-    const {limit} = req.query;
-
-    if(limit){
-        let limitedUsers = usersArray.slice(0, (limit + 1));
-        console.log("the request has a limit: " + limit)
-        res.send(limitedUsers);
-    }else{
-        console.log("the request has no limit")
-        res.send(usersArray);
-    }
+    res.send(getLimitedData(req.query.limit, users))
 })
 
 //function to get a user for a specific id
 usersRouter.get("/:id", (req, res, next)=>{
-    const {id} = req.params;
-    const userFound = usersArray.find((user)=>user.id == id);
-    if(userFound){
-        console.log("user returned...")
-        res.send(userFound);
-    }
-    else{
-        console.log("user not found with the id: " + id);
-        res.send(404);
-    }
+    getInstanceById(users, req.params.id)
+        .then((userFound)=>{
+            res.send(userFound);
+        })
+        .catch((err)=>{
+            res.send(err)
+        })
 })
 
 usersRouter.post('/', (req, res, next)=>{
     const {email, password} = req.body;
-    const newId = (usersArray.length > 0 ? usersArray[usersArray.length - 1].id : 0) + 1;
-    //verify the email
-    const isEmail = email.includes('@');
-    if(email && password && isEmail){
-        if(!usersArray.find((user)=>user.email == email)){
-            usersArray.push({id: newId, email: email, password: password});
-            writeUsersFile()
-            .then((value)=>{
-                console.log("the user has been created, answer: " + value);
-                res.send(201)
-            })
-            .catch((err)=>{
-                console.log("an error has ocurred: " + err)
-                res.send(500)
-            })
-        }else{
-            console.log("this email has been used, try another")
-            res.send(409)
+    createInstance(
+        {
+            path: FILEPATH, 
+            collection: users, 
+            body: req.body,
+            id: (users.length > 0 ? users[users.length - 1].id : 0) + 1,
+            objectValid: email && password && email.includes('@'),
+            notDuplicated: !users.find((user)=>user.email == email)
         }
-    }else{
-        console.log("there's not enough data to create a user " + (isEmail ? ", also the email doesn't have @" : ""))
-        res.send(409)
-    }
+    )
+    .then(()=>{
+        req.session.account = {email};
+        console.log("the session id now is: " + req.sessionID);
+        console.log("the account in the session is: " + req.session.account)
+        res.send(200)
+    })
+    .catch((err)=>{
+        res.send(err)
+    })
 })
 
 usersRouter.put('/:id', (req, res, next)=>{
     const {id} = req.params;
-    const userToBeUpdated = req.body;
-    if(userToBeUpdated){
-        //CHEKCS the email
-        if(!usersArray.find((user)=>(user.email == userToBeUpdated.email && user.id != id))){
-            const userFound = usersArray.find((user)=>user.id == id)
-            if(userFound){
-                usersArray = usersArray.map((user)=>{
-                    if(user.id == id){
-                        return {id: user.id, ...userToBeUpdated};
-                    }else{
-                        return user;
-                    }
-                });    
-                writeUsersFile()
-                    .then(()=>{
-                        console.log("the user has been updated");
-                        res.send(200)
-                    })
-                    .catch((err)=>{
-                        console.log("error in the file")
-                        res.send(500)
-                    })
-            }else{
-                console.log("user not found to update the info")
-                res.send(404)
-            }
-        }else{
-            console.log("that email has been used")
-            res.send(409)
-        }
-        
-    }else{
-        console.log("there's not enough data in the request to update the user")
-        res.send(409)
-    }
+    updateInstance({
+        collection: users,
+        id: id,
+        path: FILEPATH,
+        updatedData: req.body,
+        notDuplicated: !users.find((user)=>(user.email == userToBeUpdated.email && user.id != id))
+    })
+    .then(()=>{
+        res.send(200)
+    })
+    .catch((err)=>{
+        res.send(err)
+    })
 })
 
 usersRouter.delete('/:id', (req, res, next)=>{
-    const {id} = req.params
-    if(usersArray.find((user)=>user.id == id)){
-        usersArray = usersArray.map((user)=>!(user.id == id));
-        writeUsersFile()
-            .then(()=>{
-                console.log("the element has been deleted")
-                res.send(200);
-            })
-            .catch((err)=>{
-                console.log("error in the file")
-                res.send(500);
-            })
-        
-    }else{
-        console.log("user not found to be deleted")
-        res.send(404)
-    }
+    deleteInstances({
+        collection: users,
+        path: FILEPATH,
+        id: req.params.id,
+        deleteAll: false
+    })
 })
 
 usersRouter.delete('/', (req, res, next)=>{
-    const {deleteAll} = req.query;
-    if(deleteAll){
-        usersArray = [];
-        writeUsersFile()
-        .then(()=>{
-            console.log("all elements had been deleted")
-            res.send(200);
-        })
-        .catch((err)=>{
-            console.log("error in operation")
-            res.send(500);
-        })
-    }else{
-        res.send(418)
-    }
+    deleteInstances({
+        collection: users,
+        path: FILEPATH,
+        id: NaN,
+        deleteAll: req.query.deleteAll
+    })
 })
 
 module.exports = usersRouter;
