@@ -80,4 +80,4 @@ cartsRouter.post("/:cid/product/:pid", (req, res, next)=>{
     }
 })
 
-export default cartsRouter;
+module.exports = cartsRouter;
