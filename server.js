@@ -13,9 +13,26 @@ const {Server} = require("socket.io")
 const app = express();
 //creating a server
 const server = createServer(app);//you can add a parameter that will be executed in every request
-const io = new Server(server)
+const io = new Server(server, {
+    cors: {origin: '*', methods: ["GET", "POST"]}
+})
 
-io.on()
+io.on('connection', (socket)=>{
+    console.log("user conectado")
+    socket.emit('bienvenido', 'Hola cliente, bienvenido', {nombre: "Emiliano"})
+    socket.on('clientMessage', (...args)=>{
+        console.log(...args)
+    })
+
+    socket.on('messageSent', (data)=>{
+        console.log("a message has been sent, data: ")
+        console.log(data)
+    })
+
+    socket.on("saludo", (data)=>{
+        console.log(data)
+    })
+})
 
 app.use(express.json());
 app.use(express.urlencoded());
